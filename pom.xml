@@ -9,8 +9,38 @@
   <packaging>pom</packaging>
   <version>1.0-SNAPSHOT</version>
 
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>1.3.3.RELEASE</version>
+  </parent>
+
   <modules>
     <module>spring-core</module>
+    <module>gs-rest-service</module>
+    <module>gs-consuming-rest</module>
+    <module>gs-relational-data-access</module>
+    <module>gs-rest-hateoas</module>
+    <module>gs-accessing-data-mongodb</module>
+    <module>gs-async-method</module>
+    <module>gs-spring-boot</module>
+    <module>gs-haddling-site-preference</module>
+    <module>gs-consuming-rest-angularjs</module>
+    <module>gs-consuming-rest-jquery</module>
+    <module>gs-rest-service-cros</module>
+    <module>gs-consuming-web-service</module>
+    <module>gs-accessing-mongodb-data-rest</module>
+    <module>gs-producing-web-service</module>
+    <module>gs-centralized-configuration</module>
+    <module>gs-scheduling-tasks</module>
+    <module>gs-uploading-files</module>
+    <module>gs-messing-redis</module>
+    <module>gs-accessing-twitter</module>
+    <module>gs-validating-form input</module>
+    <module>gs-validating-form-input</module>
+    <module>gs-batch-processing</module>
+    <module>gs-managing-transactions</module>
+    <module>gs-serving-web-content</module>
   </modules>
 
 </project>

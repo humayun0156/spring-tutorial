@@ -1,0 +1,1 @@
+http://spring.io/guides/gs/consuming-rest/

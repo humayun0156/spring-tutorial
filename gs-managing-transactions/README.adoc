@@ -1,0 +1,130 @@
+---
+tags: []
+projects: []
+---
+:spring_boot_version: 1.3.3.RELEASE
+:SpringApplication: http://docs.spring.io/spring-boot/docs/{spring_boot_version}/api/org/springframework/boot/SpringApplication.html
+:toc:
+:icons: font
+:source-highlighter: prettify
+:project_id: gs-managing-transactions
+This guide walks you through the process of wrapping database operations with non-intrusive transactions.
+
+== What you'll build
+
+You'll build a simple JDBC application wherein you make database operations transactional without having to write http://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#commit_transactions[specialized JDBC code].
+
+
+== What you'll need
+
+:java_version: 1.8
+include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/prereq_editor_jdk_buildtools.adoc[]
+
+
+include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/how_to_complete_this_guide.adoc[]
+
+
+include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/hide-show-gradle.adoc[]
+
+include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/hide-show-maven.adoc[]
+
+include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/hide-show-sts.adoc[]
+
+
+
+[[initial]]
+== Create a booking service
+First, use the `BookingService` class to create a JDBC-based service that books people into the system by name. 
+
+`src/main/java/hello/BookingService.java`
+[source,java]
+----
+include::complete/src/main/java/hello/BookingService.java[]
+----
+
+The code has an autowired `JdbcTemplate`, a handy template class that does all the database interactions needed by the code below.
+
+You also have a `book` method aimed at booking multiple people. It loops through the list of people, and for each person, inserts them into the `BOOKINGS` table using the `JdbcTemplate`. This method is tagged with `@Transactional`, meaning that any failure causes the entire operation to roll back to its previous state, and to re-throw the original exception. This means that none of the people will be added to `BOOKINGS` if one person fails to be added.
+
+You also have a `findAllBookings` method to query the database. Each row fetched from the database is converted into a `String` and then assembled into a `List`.
+
+== Build an application
+`src/main/java/hello/Application.java`
+[source,java]
+----
+include::complete/src/main/java/hello/Application.java[]
+----
+
+`@SpringBootApplication` is a convenience annotation that adds all of the following:
+    
+- `@Configuration` tags the class as a source of bean definitions for the application context.
+- `@EnableAutoConfiguration` tells Spring Boot to start adding beans based on classpath settings, other beans, and various property settings.
+- Normally you would add `@EnableWebMvc` for a Spring MVC app, but Spring Boot adds it automatically when it sees **spring-webmvc** on the classpath. This flags the application as a web application and activates key behaviors such as setting up a `DispatcherServlet`.
+- `@ComponentScan` tells Spring to look for other components, configurations, and services in the the `hello` package, allowing it to find the `HelloController`.
+
+The `main()` method uses Spring Boot's `SpringApplication.run()` method to launch an application. Did you notice that there wasn't a single line of XML? No **web.xml** file either. This web application is 100% pure Java and you didn't have to deal with configuring any plumbing or infrastructure.
+
+You configure your beans in the `Application` configuration class. The `bookingService` method wires in an instance of `BookingService`.
+
+As shown earlier in this guide, `JdbcTemplate` is autowired into `BookingService`, meaning you now need to define it in the `Application` code:
+    
+The `jdbcTemplate` method where you create an instance of `JdbcTemplate` also contains some DDL to declare the `BOOKINGS` table.
+
+Spring Boot automatically creates the needed beans for transactions based on the presence of *spring-tx* on the classpath.
+
+NOTE: In production systems, database tables are usually declared outside the application.
+
+include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/build_an_executable_jar_with_both.adoc[]
+
+
+You should see the following output:
+
+....
+2014-08-28 10:49:20.935  INFO 24084 --- [           main] hello.Application                        : Creating tables
+2014-08-28 10:49:21.347  INFO 24084 --- [           main] o.s.j.e.a.AnnotationMBeanExporter        : Registering beans for JMX exposure on startup
+2014-08-28 10:49:21.389  INFO 24084 --- [           main] hello.Application                        : Started Application in 1.488 seconds (JVM running for 1.772)
+2014-08-28 10:49:21.443  INFO 24084 --- [           main] hello.BookingService                     : Booking Alice in a seat...
+2014-08-28 10:49:21.447  INFO 24084 --- [           main] hello.BookingService                     : Booking Bob in a seat...
+2014-08-28 10:49:21.447  INFO 24084 --- [           main] hello.BookingService                     : Booking Carol in a seat...
+2014-08-28 10:49:21.536  INFO 24084 --- [           main] hello.BookingService                     : Booking Chris in a seat...
+2014-08-28 10:49:21.537  INFO 24084 --- [           main] hello.BookingService                     : Booking Samuel in a seat...
+2014-08-28 10:49:21.545  INFO 24084 --- [           main] o.s.b.f.xml.XmlBeanDefinitionReader      : Loading XML bean definitions from class path resource [org/springframework/jdbc/support/sql-error-codes.xml]
+2014-08-28 10:49:21.612  INFO 24084 --- [           main] o.s.jdbc.support.SQLErrorCodesFactory    : SQLErrorCodes loaded: [DB2, Derby, H2, HSQL, Informix, MS-SQL, MySQL, Oracle, PostgreSQL, Sybase]
+2014-08-28 10:49:21.623  INFO 24084 --- [           main] hello.Application                        : v--- The following exception is expect because 'Samuel' is too big for the DB ---v
+2014-08-28 10:49:21.623 ERROR 24084 --- [           main] hello.Application                        : PreparedStatementCallback; SQL [insert into BOOKINGS(FIRST_NAME) values (?)]; Value too long for column "FIRST_NAME VARCHAR(5) NOT NULL": "'Samuel' (6)"; SQL statement:
+insert into BOOKINGS(FIRST_NAME) values (?) [22001-176]; nested exception is org.h2.jdbc.JdbcSQLException: Value too long for column "FIRST_NAME VARCHAR(5) NOT NULL": "'Samuel' (6)"; SQL statement:
+insert into BOOKINGS(FIRST_NAME) values (?) [22001-176]
+2014-08-28 10:49:21.661  INFO 24084 --- [           main] hello.Application                        : So far, Alice is booked.
+2014-08-28 10:49:21.661  INFO 24084 --- [           main] hello.Application                        : So far, Bob is booked.
+2014-08-28 10:49:21.662  INFO 24084 --- [           main] hello.Application                        : So far, Carol is booked.
+2014-08-28 10:49:21.662  INFO 24084 --- [           main] hello.Application                        : You shouldn't see Chris or Samuel. Samuel violated DB constraints, and Chris was rolled back in the same TX
+2014-08-28 10:49:21.730  INFO 24084 --- [           main] hello.BookingService                     : Booking Buddy in a seat...
+2014-08-28 10:49:21.731  INFO 24084 --- [           main] hello.BookingService                     : Booking null in a seat...
+2014-08-28 10:49:21.735  INFO 24084 --- [           main] hello.Application                        : v--- The following exception is expect because null is not valid for the DB ---v
+2014-08-28 10:49:21.736 ERROR 24084 --- [           main] hello.Application                        : PreparedStatementCallback; SQL [insert into BOOKINGS(FIRST_NAME) values (?)]; NULL not allowed for column "FIRST_NAME"; SQL statement:
+insert into BOOKINGS(FIRST_NAME) values (?) [23502-176]; nested exception is org.h2.jdbc.JdbcSQLException: NULL not allowed for column "FIRST_NAME"; SQL statement:
+insert into BOOKINGS(FIRST_NAME) values (?) [23502-176]
+2014-08-28 10:49:21.771  INFO 24084 --- [           main] hello.Application                        : So far, Alice is booked.
+2014-08-28 10:49:21.772  INFO 24084 --- [           main] hello.Application                        : So far, Bob is booked.
+2014-08-28 10:49:21.772  INFO 24084 --- [           main] hello.Application                        : So far, Carol is booked.
+2014-08-28 10:49:21.772  INFO 24084 --- [           main] hello.Application                        : You shouldn't see Buddy or null. null violated DB constraints, and Buddy was rolled back in the same TX
+....
+
+The `BOOKINGS` table has two constraints on the **first_name** column:
+
+- Names cannot be longer than five characters.
+- Names cannot be null.
+
+The first three names inserted are **Alice**, **Bob**, and **Carol**. The application asserts that three people were added to that table. If that had not worked, the application would have exited early.
+
+Next, another booking is done for **Chris** and **Samuel**. Samuel's name is deliberately too long, forcing an insert error. Transactional behavior stipulates that both Chris and Samuel; that is, this transaction, should be rolled back. Thus there should still be only three people in that table, which the assertion demonstrates.
+
+Finally, **Buddy** and **null** are booked. As the output shows, null causes a rollback as well, leaving the same three people booked.
+
+== Summary
+Congratulations! You've just used Spring to develop a simple JDBC application wrapped with non-intrusive transactions.
+
+
+
+include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/footer.adoc[]
+
